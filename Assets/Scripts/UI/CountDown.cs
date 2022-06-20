@@ -25,6 +25,10 @@ public class CountDown : MonoBehaviour
     {
         value = 0f;
     }
+    public float GetCountDown()
+    {
+        return value;
+    }
 
     private void Update()
     {

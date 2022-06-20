@@ -27,6 +27,7 @@ public class TitleAnimation : MonoBehaviour
         var posAya = trAya.anchoredPosition;
         posAya.y = trAyaStartPosY;
         trAya.anchoredPosition = posAya;
+        isPlaying = false;
     }
 
     public void Play()

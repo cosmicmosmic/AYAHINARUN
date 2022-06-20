@@ -54,4 +54,10 @@ public class FieldMover : MonoBehaviour
         var tr = GetBehind();
         tr.position = pos;
     }
+
+    public void ResetField()
+    {
+        trGround_1.transform.position = Vector3.zero;
+        trGround_2.transform.position = new Vector3(20f, 0f, 0f);
+    }
 }

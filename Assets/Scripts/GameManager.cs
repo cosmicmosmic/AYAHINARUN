@@ -8,6 +8,7 @@ public class GameManager : GameObjectSingleton<GameManager>
     {
         TITLE,
         SYNOPSIS,
+        GUIDE,
         READY,
         RUNNING,
         END
@@ -18,6 +19,7 @@ public class GameManager : GameObjectSingleton<GameManager>
     [SerializeField] private UIManager ui;
     [SerializeField] private InputManager input;
     [SerializeField] private FollowCamera cam;
+    [SerializeField] private FieldMover field;
 
     [SerializeField] private Runner runnerAya;
     [SerializeField] private Runner runnerHina;
@@ -26,8 +28,12 @@ public class GameManager : GameObjectSingleton<GameManager>
     [SerializeField] private AudioClip bgm_title;
     [SerializeField] private AudioClip bgm_game;
 
+    private bool isSound = true;
+
     private bool isHinaGoal = false;
     private bool isWin = false;
+    private float winnerTime = 0f;
+    private float loserTime = 0f;
 
     protected override void Awake()
     {
@@ -43,10 +49,13 @@ public class GameManager : GameObjectSingleton<GameManager>
         isWin = false;
         ui.InitUI();
         cam.Init();
-        ui.onClickSkip = () => ChangeState(GameState.READY);
+        ui.onClickSkip = () => ChangeState(GameState.GUIDE);
+        ui.onClickOkGuide = () => ChangeState(GameState.READY);
         input.callbackAnyKeyDown = CallbackAnyKeyDown;
         input.callbackInputA = CallbackInputA;
         input.callbackInputB = CallbackInputB;
+        input.callbackSound = CallbackSound;
+        field.ResetField();
     }
 
     private void PlayBGMTitle()
@@ -89,6 +98,20 @@ public class GameManager : GameObjectSingleton<GameManager>
         }
     }
 
+    private void CallbackSound()
+    {
+        var au = cam.GetComponent<AudioSource>();
+        isSound = !isSound;
+        if (isSound)
+        {
+            au.volume = 1f;
+        }
+        else
+        {
+            au.volume = 0f;
+        }
+    }
+
     public void ChangeState(GameState _state)
     {
         State = _state;
@@ -105,8 +128,12 @@ public class GameManager : GameObjectSingleton<GameManager>
             ui.ShowTitle(false);
             ui.ShowSynopsis(true);
             break;
-        case GameState.READY:
+        case GameState.GUIDE:
             ui.ShowSynopsis(false);
+            ui.ShowGuide(true);
+            break;
+        case GameState.READY:
+            ui.ShowGuide(false);
             PlayBGMGame();
             ui.ShowReady(() =>
             {
@@ -121,6 +148,8 @@ public class GameManager : GameObjectSingleton<GameManager>
             runnerHina.GetComponent<BotRunnerController>().StartBot();
             break;
         case GameState.END:
+            ui.objGagebar.SetActive(false);
+            ui.countDown.gameObject.SetActive(false);
             StartCoroutine(CorGameEnd());
             break;
         }
@@ -136,17 +165,30 @@ public class GameManager : GameObjectSingleton<GameManager>
                 if (isHinaGoal)
                 {
                     isWin = false;
+                    loserTime = ui.countDown.GetCountDown();
+                    ui.countDown.StopCountDown();
                 }
                 else
                 {
                     isWin = true;
+                    winnerTime = ui.countDown.GetCountDown();
                 }
+                ui.objRemainDist.SetActive(false);
             }
 
             if (runnerHina.transform.position.x > trGoal.position.x && runnerHina.State != Runner.RunnerState.GOAL)
             {
                 isHinaGoal = true;
                 runnerHina.Goal();
+                if (isWin)
+                {
+                    loserTime = ui.countDown.GetCountDown();
+                    ui.countDown.StopCountDown();
+                }
+                else
+                {
+                    winnerTime = ui.countDown.GetCountDown();
+                }
             }
 
             if (runnerAya.State == Runner.RunnerState.GOAL && runnerHina.State == Runner.RunnerState.GOAL)
@@ -159,5 +201,13 @@ public class GameManager : GameObjectSingleton<GameManager>
     private IEnumerator CorGameEnd()
     {
         yield return new WaitForSeconds(1f);
+        ui.end.Open(isWin, winnerTime, loserTime);
+        ui.end.onClickRestart = ResetGame;
+    }
+
+    private void ResetGame()
+    {
+        Init();
+        ChangeState(GameState.TITLE);
     }
 }
